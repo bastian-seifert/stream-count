@@ -5,6 +5,7 @@ use crate::{
     ElementSet,
 };
 
+#[derive(Debug)]
 pub struct StreamCountEstimator<T> {
     elements: ElementSet<T>,
     tresh: usize,
@@ -28,7 +29,7 @@ fn in_unit_interval(input: f64) -> CountResult<()> {
 
 impl<T> StreamCountEstimator<T>
 where
-    T: Hash,
+    T: Hash + Eq + Sized,
 {
     pub fn new(epsilon: f64, delta: f64, stream_length: usize) -> CountResult<Self> {
         in_unit_interval(epsilon)?;
@@ -40,5 +41,27 @@ where
             tresh,
             round_prob: 1.0,
         })
+    }
+
+    fn process_element(&mut self, element: &T) {
+        if self.elements.contains(element) {
+            self.elements.remove(element);
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use insta::*;
+
+    use super::StreamCountEstimator;
+
+    #[test]
+    fn incorrect_input_params() {
+        let err_epsilon =
+            StreamCountEstimator::<u32>::new(-1.0, 0.5, 1).expect_err("Expected error.");
+        assert_snapshot!(err_epsilon, @"CountError(WrongInitializiation(Input -1 is negative.))");
+        let err_delta = StreamCountEstimator::<u32>::new(1.0, 1.5, 1).expect_err("Expected error.");
+        assert_snapshot!(err_delta, @"CountError(WrongInitializiation(Input 1.5 is larger than 1.))");
     }
 }
