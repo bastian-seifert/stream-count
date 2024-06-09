@@ -1,0 +1,15 @@
+[package]
+name = "stream-count"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "sclibe"
+path = "src/lib.rs"
+
+[[bin]]
+name = "scbin"
+path = "src/main.rs"
+
+[dependencies]
+rand = "0.8.5"
