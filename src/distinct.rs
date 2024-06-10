@@ -1,3 +1,4 @@
+use rand::distributions::{Bernoulli, Distribution};
 use std::hash::Hash;
 
 use crate::{
@@ -9,7 +10,7 @@ use crate::{
 pub struct StreamCountEstimator<T> {
     elements: ElementSet<T>,
     tresh: usize,
-    round_prob: f64,
+    sampling_round: u32,
 }
 
 /// Throws an error if input is not in [0,1]
@@ -39,14 +40,20 @@ where
         Ok(StreamCountEstimator {
             elements: ElementSet::default(),
             tresh,
-            round_prob: 1.0,
+            sampling_round: 1,
         })
     }
 
-    fn process_element(&mut self, element: &T) {
-        if self.elements.contains(element) {
-            self.elements.remove(element);
+    fn process_element(&mut self, element: T) -> CountResult<()> {
+        let prob_dist = Bernoulli::from_ratio(1, self.sampling_round)
+            .map_err(|err| CountError::Message(err.to_string()))?;
+        if prob_dist.sample(&mut rand::thread_rng()) {
+            self.elements.insert(element);
+        } else if self.elements.contains(&element) {
+            self.elements.remove(&element);
         }
+        if self.elements.len() == self.tresh {}
+        Ok(())
     }
 }
 

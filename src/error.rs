@@ -3,6 +3,7 @@ use std::{error::Error, fmt::Display};
 #[derive(Debug)]
 pub enum CountError {
     WrongInitialization(String),
+    Message(String),
 }
 
 impl Error for CountError {}
@@ -12,6 +13,9 @@ impl Display for CountError {
         match self {
             CountError::WrongInitialization(msg) => {
                 write!(f, "CountError(WrongInitializiation({msg}))")
+            }
+            CountError::Message(msg) => {
+                write!(f, "CountError(Message({msg}))")
             }
         }
     }

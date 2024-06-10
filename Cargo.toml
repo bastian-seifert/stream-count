@@ -7,10 +7,6 @@ edition = "2021"
 name = "sclibe"
 path = "src/lib.rs"
 
-[[bin]]
-name = "scbin"
-path = "src/main.rs"
-
 [dependencies]
 rand = "0.8.5"
 
