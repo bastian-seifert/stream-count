@@ -30,7 +30,7 @@ fn in_unit_interval(input: f64) -> CountResult<()> {
 
 impl<T> StreamCountEstimator<T>
 where
-    T: Hash + Eq + Sized,
+    T: Hash + Eq + Sized + Clone,
 {
     pub fn new(epsilon: f64, delta: f64, stream_length: usize) -> CountResult<Self> {
         in_unit_interval(epsilon)?;
@@ -38,7 +38,7 @@ where
         let tresh = (12.0 / epsilon.powi(2) * (8.0 * (stream_length as f64) / delta).log2()).ceil()
             as usize;
         Ok(StreamCountEstimator {
-            elements: ElementSet::default(),
+            elements: ElementSet::with_capacity(tresh),
             tresh,
             sampling_round: 1,
         })
@@ -52,7 +52,20 @@ where
         } else if self.elements.contains(&element) {
             self.elements.remove(&element);
         }
-        if self.elements.len() == self.tresh {}
+        if self.elements.len() == self.tresh {
+            let mut updatet_elements = ElementSet::<T>::with_capacity(self.tresh);
+
+            let prob_dist =
+                Bernoulli::from_ratio(1, 2).map_err(|err| CountError::Message(err.to_string()))?;
+            let mut randomness = rand::thread_rng();
+            for elem in self.elements.iter() {
+                if prob_dist.sample(&mut randomness) {
+                    updatet_elements.insert(elem.clone());
+                }
+            }
+            self.elements = updatet_elements;
+            self.sampling_round *= 2;
+        }
         Ok(())
     }
 }
