@@ -6,13 +6,13 @@ use std::fmt::Debug;
 use std::hash::Hash;
 
 use crate::{
+    elementset::*,
     error::{CountError, CountResult},
-    ElementSet,
 };
 
 #[derive(Debug)]
-pub struct StreamCountEstimator<T> {
-    elements: ElementSet<T>,
+pub struct StreamCountEstimator<E: ElementSet> {
+    elements: E,
     capacity: usize,
     sampling_round: f64,
 }
@@ -32,9 +32,10 @@ fn in_unit_interval(input: f64) -> CountResult<()> {
     Ok(())
 }
 
-impl<T> StreamCountEstimator<T>
+impl<E> StreamCountEstimator<E>
 where
-    T: Hash + Eq + Sized + Clone + Debug,
+    E: ElementSet,
+    E::Element: Clone,
 {
     pub fn new(epsilon: f64, delta: f64, stream_length: usize) -> CountResult<Self> {
         in_unit_interval(epsilon)?;
@@ -56,13 +57,13 @@ where
         })
     }
 
-    fn process_element(&mut self, element: T) -> CountResult<()> {
+    fn process_element(&mut self, element: E::Element) -> CountResult<()> {
         self.process_element_with_randomness(element, &mut rand::thread_rng())
     }
 
     fn process_element_with_randomness<R: Rng + ?Sized>(
         &mut self,
-        element: T,
+        element: E::Element,
         randomness: &mut R,
     ) -> CountResult<()> {
         let prob_dist = Bernoulli::from_ratio(1, self.sampling_round as u32)
@@ -73,7 +74,7 @@ where
             self.elements.remove(&element);
         }
         if self.elements.len() == self.capacity - 1 {
-            let mut updatet_elements = ElementSet::<T>::with_capacity(self.capacity);
+            let mut updatet_elements = E::with_capacity(self.capacity);
 
             let prob_dist =
                 Bernoulli::from_ratio(1, 2).map_err(|err| CountError::Message(err.to_string()))?;
@@ -91,10 +92,7 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::{
-        borrow::{Borrow, BorrowMut},
-        cell::RefCell,
-    };
+    use std::{cell::RefCell, collections::HashSet};
 
     use insta::*;
     use rand::{
@@ -132,15 +130,16 @@ mod test {
     #[test]
     fn incorrect_input_params() {
         let err_epsilon =
-            StreamCountEstimator::<u32>::new(-1.0, 0.5, 1).expect_err("Expected error.");
+            StreamCountEstimator::<HashSet<u32>>::new(-1.0, 0.5, 1).expect_err("Expected error.");
         assert_snapshot!(err_epsilon, @"CountError(WrongInitializiation(Input -1 is negative.))");
-        let err_delta = StreamCountEstimator::<u32>::new(1.0, 1.5, 1).expect_err("Expected error.");
+        let err_delta =
+            StreamCountEstimator::<HashSet<u32>>::new(1.0, 1.5, 1).expect_err("Expected error.");
         assert_snapshot!(err_delta, @"CountError(WrongInitializiation(Input 1.5 is larger than 1.))");
     }
 
     #[test]
     fn process_element() {
-        let mut scount = StreamCountEstimator::<usize>::with_capacity(10).unwrap();
+        let mut scount = StreamCountEstimator::<Vec<usize>>::with_capacity(10).unwrap();
 
         let mut randomness = StdRng::seed_from_u64(1);
         for num in 0..100 {

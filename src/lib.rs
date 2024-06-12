@@ -1,7 +1,3 @@
-use std::collections::HashSet;
-
 pub mod distinct;
+pub mod elementset;
 pub mod error;
-
-// TODO: Replace with something more efficient?
-pub type ElementSet<T> = HashSet<T>;
