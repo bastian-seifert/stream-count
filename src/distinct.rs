@@ -3,7 +3,6 @@ use rand::{
     Rng,
 };
 use std::fmt::Debug;
-use std::hash::Hash;
 
 use crate::{
     elementset::*,
@@ -92,40 +91,12 @@ where
 
 #[cfg(test)]
 mod test {
-    use std::{cell::RefCell, collections::HashSet};
+    use std::collections::HashSet;
 
     use insta::*;
-    use rand::{
-        distributions::{Bernoulli, Distribution},
-        rngs::StdRng,
-        SeedableRng,
-    };
-    use rand_chacha::ChaCha8Rng;
-    use rand_pcg::Pcg64;
+    use rand::{rngs::StdRng, SeedableRng};
 
     use super::StreamCountEstimator;
-
-    thread_local!(
-    pub static RNG: RefCell<Pcg64> = RefCell::new(Pcg64::seed_from_u64(
-        std::time::SystemTime::now()
-            .duration_since(std::time::SystemTime::UNIX_EPOCH)
-            .unwrap()
-            .as_secs(),
-    )));
-
-    #[test]
-    fn random_bool() {
-        let mut randomness = ChaCha8Rng::seed_from_u64(1337);
-
-        let prob_dist = Bernoulli::from_ratio(1, 2).unwrap();
-        let some_other_dist = Bernoulli::from_ratio(1, 4).unwrap();
-        let mut bool_vec = Vec::with_capacity(10);
-        for _ in 0..10 {
-            bool_vec.push(prob_dist.sample(&mut randomness));
-            some_other_dist.sample(&mut randomness);
-        }
-        println!("{bool_vec:?}");
-    }
 
     #[test]
     fn incorrect_input_params() {
