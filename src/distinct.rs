@@ -149,14 +149,14 @@ mod test {
         }
         assert_debug_snapshot!(scount, @r###"
         StreamCountEstimator {
-            elements: {
-                41,
-                66,
-                1,
+            elements: [
+                2,
+                25,
+                30,
                 32,
                 37,
-                91,
-            },
+                85,
+            ],
             capacity: 10,
             sampling_round: 32.0,
         }
