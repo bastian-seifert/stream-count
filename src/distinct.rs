@@ -72,7 +72,10 @@ where
         randomness: &mut R,
     ) -> CountResult<usize> {
         for elem in it.into_iter() {
-            while let None = self.process_element_with_randomness(elem.clone(), randomness)? {}
+            while self
+                .process_element_with_randomness(elem.clone(), randomness)?
+                .is_none()
+            {}
         }
         Ok(self.elements.len() * self.sampling_round)
     }

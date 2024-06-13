@@ -56,12 +56,12 @@ where
     }
 
     fn contains(&self, elem: &Self::Element) -> bool {
-        self.as_slice().iter().find(|val| *val == elem).is_some()
+        self.as_slice().iter().any(|val| val == elem)
     }
 
     fn remove(&mut self, elem: &Self::Element) {
         let Some(pos) = self.as_slice().iter().position(|val| val == elem) else {
-            return ();
+            return;
         };
         Vec::remove(self, pos);
     }
