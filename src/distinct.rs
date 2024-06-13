@@ -13,7 +13,7 @@ use crate::{
 pub struct StreamCountEstimator<E: ElementSet> {
     elements: E,
     capacity: usize,
-    sampling_round: f64,
+    sampling_round: usize,
 }
 
 /// Throws an error if input is not in [0,1]
@@ -44,7 +44,7 @@ where
         Ok(StreamCountEstimator {
             elements: ElementSet::with_capacity(capacity),
             capacity,
-            sampling_round: 1.0,
+            sampling_round: 1,
         })
     }
 
@@ -52,11 +52,32 @@ where
         Ok(StreamCountEstimator {
             elements: ElementSet::with_capacity(capacity),
             capacity,
-            sampling_round: 1.0,
+            sampling_round: 1,
         })
     }
 
-    fn process_element(&mut self, element: E::Element) -> CountResult<()> {
+    pub fn estimate_distinct_elements(
+        &mut self,
+        it: impl Iterator<Item = E::Element>,
+    ) -> CountResult<usize> {
+        for elem in it.into_iter() {
+            self.process_element(elem)?;
+        }
+        Ok(self.elements.len() * self.sampling_round)
+    }
+
+    pub fn estimate_distinct_elements_with_randomness<R: Rng + ?Sized>(
+        &mut self,
+        it: impl Iterator<Item = E::Element>,
+        randomness: &mut R,
+    ) -> CountResult<usize> {
+        for elem in it.into_iter() {
+            while let None = self.process_element_with_randomness(elem.clone(), randomness)? {}
+        }
+        Ok(self.elements.len() * self.sampling_round)
+    }
+
+    fn process_element(&mut self, element: E::Element) -> CountResult<Option<()>> {
         self.process_element_with_randomness(element, &mut rand::thread_rng())
     }
 
@@ -64,7 +85,7 @@ where
         &mut self,
         element: E::Element,
         randomness: &mut R,
-    ) -> CountResult<()> {
+    ) -> CountResult<Option<()>> {
         let prob_dist = Bernoulli::from_ratio(1, self.sampling_round as u32)
             .map_err(|err| CountError::Message(err.to_string()))?;
         if prob_dist.sample(randomness) {
@@ -72,7 +93,7 @@ where
         } else if self.elements.contains(&element) {
             self.elements.remove(&element);
         }
-        if self.elements.len() == self.capacity - 1 {
+        if self.elements.len() == self.capacity {
             let mut updatet_elements = E::with_capacity(self.capacity);
 
             let prob_dist =
@@ -82,10 +103,13 @@ where
                     updatet_elements.insert(elem.clone());
                 }
             }
+            if updatet_elements.len() == self.capacity {
+                return Ok(None);
+            }
             self.elements = updatet_elements;
-            self.sampling_round *= 2.0;
+            self.sampling_round *= 2;
         }
-        Ok(())
+        Ok(Some(()))
     }
 }
 
@@ -94,7 +118,8 @@ mod test {
     use std::collections::HashSet;
 
     use insta::*;
-    use rand::{rngs::StdRng, SeedableRng};
+    use itertools::Itertools;
+    use rand::{rngs::StdRng, Rng, SeedableRng};
 
     use super::StreamCountEstimator;
 
@@ -121,16 +146,29 @@ mod test {
         assert_debug_snapshot!(scount, @r###"
         StreamCountEstimator {
             elements: [
-                2,
-                25,
-                30,
+                6,
+                21,
                 32,
-                37,
-                85,
+                35,
+                72,
+                82,
+                88,
             ],
             capacity: 10,
-            sampling_round: 32.0,
+            sampling_round: 16,
         }
         "###);
+    }
+
+    #[test]
+    fn simple_stream() {
+        let mut randomness = StdRng::seed_from_u64(1);
+        let input_vec = (0..1000).map(|_| randomness.gen_range(0..15)).collect_vec();
+        let mut scount = StreamCountEstimator::<Vec<i32>>::with_capacity(10).unwrap();
+        let count = scount
+            .estimate_distinct_elements_with_randomness(input_vec.into_iter(), &mut randomness)
+            .unwrap();
+
+        assert_eq!(count, 16);
     }
 }
