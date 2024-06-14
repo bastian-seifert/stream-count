@@ -7,6 +7,9 @@ pub trait ElementSet {
     fn contains(&self, elem: &Self::Element) -> bool;
     fn remove(&mut self, elem: &Self::Element);
     fn len(&self) -> usize;
+    fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
     fn iter(&self) -> impl Iterator<Item = &Self::Element>;
 }
 
