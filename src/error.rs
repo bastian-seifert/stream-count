@@ -1,4 +1,6 @@
-use std::{error::Error, fmt::Display};
+use std::fmt::Display;
+
+use error_stack::{Context, Result};
 
 #[derive(Debug)]
 pub enum CountError {
@@ -6,7 +8,7 @@ pub enum CountError {
     Message(String),
 }
 
-impl Error for CountError {}
+impl Context for CountError {}
 
 impl Display for CountError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
