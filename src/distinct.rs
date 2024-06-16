@@ -54,7 +54,7 @@ where
         })
     }
 
-    pub fn estimate_distinct_elements(
+    pub fn estimate_distinct_elements_iter(
         &mut self,
         it: impl Iterator<Item = E::Element>,
     ) -> CountResult<usize> {
@@ -64,7 +64,7 @@ where
         Ok(self.elements.len() * self.sampling_round)
     }
 
-    pub fn estimate_distinct_elements_with_randomness<R: Rng + ?Sized>(
+    pub fn estimate_distinct_elements_iter_with_randomness<R: Rng + ?Sized>(
         &mut self,
         it: impl Iterator<Item = E::Element>,
         randomness: &mut R,
@@ -179,7 +179,7 @@ mod test {
         let input_vec = (0..1000).map(|_| randomness.gen_range(0..15)).collect_vec();
         let mut scount = StreamCountEstimator::<Vec<i32>>::with_capacity(10).unwrap();
         let count = scount
-            .estimate_distinct_elements_with_randomness(input_vec.into_iter(), &mut randomness)
+            .estimate_distinct_elements_iter_with_randomness(input_vec.into_iter(), &mut randomness)
             .unwrap();
 
         assert_eq!(count, 12);
@@ -193,7 +193,7 @@ mod test {
             .collect_vec();
         let mut scount = StreamCountEstimator::<Vec<i32>>::with_capacity(3).unwrap();
         let count = scount
-            .estimate_distinct_elements_with_randomness(input_vec.into_iter(), &mut randomness)
+            .estimate_distinct_elements_iter_with_randomness(input_vec.into_iter(), &mut randomness)
             .unwrap();
 
         assert_debug_snapshot!(scount, @r###"
