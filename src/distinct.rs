@@ -1,4 +1,3 @@
-use error_stack::ResultExt;
 use rand::{
     distributions::{Bernoulli, Distribution},
     Rng,
@@ -36,8 +35,8 @@ where
     E::Element: Clone,
 {
     pub fn new(epsilon: f64, delta: f64, stream_length: usize) -> CountResult<Self> {
-        in_unit_interval(epsilon).attach_printable_lazy(|| "Epsilon has wrong input value")?;
-        in_unit_interval(delta).attach_printable_lazy(|| "Delta has wrong input value")?;
+        in_unit_interval(epsilon)?;
+        in_unit_interval(delta)?;
         let capacity = (12.0 / epsilon.powi(2) * (8.0 * (stream_length as f64) / delta).log2())
             .ceil() as usize;
         Ok(StreamCountEstimator {
@@ -88,8 +87,12 @@ where
         element: E::Element,
         randomness: &mut R,
     ) -> CountResult<Option<()>> {
-        let prob_dist = Bernoulli::from_ratio(1, self.sampling_round as u32)
-            .map_err(|err| CountError::Message(err.to_string()))?;
+        let prob_dist = Bernoulli::from_ratio(1, self.sampling_round as u32).map_err(|err| {
+            CountError::Message(format!(
+                "Could not create probability distribution within sampling round {}: \n {err}",
+                self.sampling_round
+            ))
+        })?;
         if prob_dist.sample(randomness) {
             self.elements.insert(element);
         } else if self.elements.contains(&element) {
@@ -129,10 +132,18 @@ mod test {
     fn incorrect_input_params() {
         let err_epsilon =
             StreamCountEstimator::<HashSet<u32>>::new(-1.0, 0.5, 1).expect_err("Expected error.");
-        assert_snapshot!(err_epsilon, @"CountError(WrongInitializiation(Input -1 is negative.))");
+        assert_snapshot!(err_epsilon, @r###"
+        CountError(
+        	WrongInitializiation(Input -1 is negative.)
+        )
+        "###);
         let err_delta =
             StreamCountEstimator::<HashSet<u32>>::new(1.0, 1.5, 1).expect_err("Expected error.");
-        assert_snapshot!(err_delta, @"CountError(WrongInitializiation(Input 1.5 is larger than 1.))");
+        assert_snapshot!(err_delta, @r###"
+        CountError(
+        	WrongInitializiation(Input 1.5 is larger than 1.)
+        )
+        "###);
     }
 
     #[test]
