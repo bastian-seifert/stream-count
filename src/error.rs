@@ -10,16 +10,16 @@ impl Error for CountError {}
 
 impl Display for CountError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "CountError(\n")?;
+        writeln!(f, "CountError(")?;
         match self {
             CountError::WrongInitialization(msg) => {
-                write!(f, "\tWrongInitializiation({msg})")?;
+                writeln!(f, "\tWrongInitializiation({msg})")?;
             }
             CountError::Message(msg) => {
-                write!(f, "\tMessage({msg})")?;
+                writeln!(f, "\tMessage({msg})")?;
             }
         }
-        write!(f, "\n)")
+        write!(f, ")")
     }
 }
 

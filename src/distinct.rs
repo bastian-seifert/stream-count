@@ -19,12 +19,14 @@ pub struct StreamCountEstimator<E: ElementSet> {
 /// Throws an error if input is not in [0,1]
 fn in_unit_interval(input: f64) -> CountResult<()> {
     if input < 0.0 {
-        return Err(CountError::WrongInitialization(format!("Input {input} is negative.")).into());
+        return Err(CountError::WrongInitialization(format!(
+            "Input {input} is negative."
+        )));
     }
     if input > 1.0 {
-        return Err(
-            CountError::WrongInitialization(format!("Input {input} is larger than 1.")).into(),
-        );
+        return Err(CountError::WrongInitialization(format!(
+            "Input {input} is larger than 1."
+        )));
     }
     Ok(())
 }
