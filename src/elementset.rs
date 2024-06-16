@@ -55,7 +55,9 @@ where
     }
 
     fn insert(&mut self, elem: Self::Element) {
-        self.push(elem);
+        if !self.contains(&elem) {
+            self.push(elem);
+        }
     }
 
     fn contains(&self, elem: &Self::Element) -> bool {

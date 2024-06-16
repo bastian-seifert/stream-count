@@ -174,7 +174,7 @@ mod test {
     }
 
     #[test]
-    fn simple_stream() {
+    fn simple_data_iter_count() {
         let mut randomness = StdRng::seed_from_u64(1);
         let input_vec = (0..1000).map(|_| randomness.gen_range(0..15)).collect_vec();
         let mut scount = StreamCountEstimator::<Vec<i32>>::with_capacity(10).unwrap();
@@ -182,6 +182,31 @@ mod test {
             .estimate_distinct_elements_with_randomness(input_vec.into_iter(), &mut randomness)
             .unwrap();
 
-        assert_eq!(count, 16);
+        assert_eq!(count, 12);
+    }
+
+    #[test]
+    fn two_elements_full_capacity_long_data_iter() {
+        let mut randomness = StdRng::seed_from_u64(1337);
+        let input_vec = (0..1000000)
+            .map(|_| randomness.gen_range(0..2))
+            .collect_vec();
+        let mut scount = StreamCountEstimator::<Vec<i32>>::with_capacity(3).unwrap();
+        let count = scount
+            .estimate_distinct_elements_with_randomness(input_vec.into_iter(), &mut randomness)
+            .unwrap();
+
+        assert_debug_snapshot!(scount, @r###"
+        StreamCountEstimator {
+            elements: [
+                1,
+                0,
+            ],
+            capacity: 3,
+            sampling_round: 1,
+        }
+        "###);
+
+        assert_eq!(count, 2);
     }
 }
