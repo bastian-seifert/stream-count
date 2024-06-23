@@ -36,6 +36,9 @@ where
     E: ElementSet,
     E::Element: Clone,
 {
+    /// Creates a new StreamCountEstimator, giving an `epsilon`-`delta` approximation
+    /// for a data stream of length `stream_length`.
+    /// The internal space capacity is calculated to guarantee the approximation goodness.
     pub fn new(epsilon: f64, delta: f64, stream_length: usize) -> CountResult<Self> {
         in_unit_interval(epsilon)?;
         in_unit_interval(delta)?;
@@ -48,6 +51,8 @@ where
         })
     }
 
+    /// Creates a new StreamCountEstimator with given space capacity.
+    /// The approximation goodness depends on the capacity.
     pub fn with_capacity(capacity: usize) -> CountResult<Self> {
         Ok(StreamCountEstimator {
             elements: ElementSet::with_capacity(capacity),
