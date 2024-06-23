@@ -71,28 +71,25 @@ where
         Ok(self.elements.len() * self.sampling_round)
     }
 
-    pub fn estimate_distinct_elements_iter_with_randomness<R: Rng + ?Sized>(
+    pub fn estimate_distinct_elements_iter_with_rng<R: Rng + ?Sized>(
         &mut self,
         it: impl Iterator<Item = E::Element>,
-        randomness: &mut R,
+        rng: &mut R,
     ) -> CountResult<usize> {
         for elem in it.into_iter() {
-            while self
-                .process_element_with_randomness(elem.clone(), randomness)?
-                .is_none()
-            {}
+            while self.process_element_with_rng(elem.clone(), rng)?.is_none() {}
         }
         Ok(self.elements.len() * self.sampling_round)
     }
 
     fn process_element(&mut self, element: E::Element) -> CountResult<Option<()>> {
-        self.process_element_with_randomness(element, &mut rand::thread_rng())
+        self.process_element_with_rng(element, &mut rand::thread_rng())
     }
 
-    fn process_element_with_randomness<R: Rng + ?Sized>(
+    fn process_element_with_rng<R: Rng + ?Sized>(
         &mut self,
         element: E::Element,
-        randomness: &mut R,
+        rng: &mut R,
     ) -> CountResult<Option<()>> {
         let prob_dist = Bernoulli::from_ratio(1, self.sampling_round as u32).map_err(|err| {
             CountError::Message(format!(
@@ -100,7 +97,7 @@ where
                 self.sampling_round
             ))
         })?;
-        if prob_dist.sample(randomness) {
+        if prob_dist.sample(rng) {
             self.elements.insert(element);
         } else if self.elements.contains(&element) {
             self.elements.remove(&element);
@@ -111,7 +108,7 @@ where
             let prob_dist =
                 Bernoulli::from_ratio(1, 2).map_err(|err| CountError::Message(err.to_string()))?;
             for elem in self.elements.iter() {
-                if prob_dist.sample(randomness) {
+                if prob_dist.sample(rng) {
                     updatet_elements.insert(elem.clone());
                 }
             }
@@ -157,11 +154,9 @@ mod test {
     fn process_element() {
         let mut scount = StreamCountEstimator::<Vec<usize>>::with_capacity(10).unwrap();
 
-        let mut randomness = StdRng::seed_from_u64(1);
+        let mut rng = StdRng::seed_from_u64(1);
         for num in 0..100 {
-            scount
-                .process_element_with_randomness(num, &mut randomness)
-                .unwrap();
+            scount.process_element_with_rng(num, &mut rng).unwrap();
         }
         assert_debug_snapshot!(scount, @r###"
         StreamCountEstimator {
@@ -182,11 +177,11 @@ mod test {
 
     #[test]
     fn simple_data_iter_count() {
-        let mut randomness = StdRng::seed_from_u64(1);
-        let input_vec = (0..1000).map(|_| randomness.gen_range(0..15)).collect_vec();
+        let mut rng = StdRng::seed_from_u64(1);
+        let input_vec = (0..1000).map(|_| rng.gen_range(0..15)).collect_vec();
         let mut scount = StreamCountEstimator::<Vec<i32>>::with_capacity(10).unwrap();
         let count = scount
-            .estimate_distinct_elements_iter_with_randomness(input_vec.into_iter(), &mut randomness)
+            .estimate_distinct_elements_iter_with_rng(input_vec.into_iter(), &mut rng)
             .unwrap();
 
         assert_eq!(count, 12);
@@ -194,13 +189,11 @@ mod test {
 
     #[test]
     fn two_elements_full_capacity_long_data_iter() {
-        let mut randomness = StdRng::seed_from_u64(1337);
-        let input_vec = (0..1000000)
-            .map(|_| randomness.gen_range(0..2))
-            .collect_vec();
+        let mut rng = StdRng::seed_from_u64(1337);
+        let input_vec = (0..1000000).map(|_| rng.gen_range(0..2)).collect_vec();
         let mut scount = StreamCountEstimator::<Vec<i32>>::with_capacity(3).unwrap();
         let count = scount
-            .estimate_distinct_elements_iter_with_randomness(input_vec.into_iter(), &mut randomness)
+            .estimate_distinct_elements_iter_with_rng(input_vec.into_iter(), &mut rng)
             .unwrap();
 
         assert_debug_snapshot!(scount, @r###"
