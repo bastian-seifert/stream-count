@@ -11,5 +11,8 @@ path = "src/lib.rs"
 rand = "0.8.5"
 
 [dev-dependencies]
+async-trait = "0.1.80"
 insta = "1.39.0"
 itertools = "0.13.0"
+proptest = "1.5.0"
+proptest-stateful = "0.1.3"
